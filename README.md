@@ -1,6 +1,6 @@
 <div align="center">
   <h1>
-    REVM integration for guillotine-mini EVM engine.
+    REVM integration for guillotine
     <br/>
     <br/>
     <img width="1024" height="1024" alt="guillotine-rs-logo" src="https://github.com/user-attachments/assets/d8107fbd-12b2-4bb4-be7e-de86c3fced44" />
