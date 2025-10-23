@@ -1,4 +1,7 @@
 //! Build script to compile guillotine-mini Zig library
+//!
+//! Note: Currently builds WASM only. Future work will add native library support
+//! or use wasmtime for execution.
 
 use std::process::Command;
 use std::path::PathBuf;
@@ -37,8 +40,8 @@ fn main() {
         panic!("zig build failed");
     }
 
-    // Tell cargo where to find the library
-    let lib_dir = guillotine_mini_dir.join("zig-out/lib");
-    println!("cargo:rustc-link-search=native={}", lib_dir.display());
-    println!("cargo:rustc-link-lib=static=guillotine_mini");
+    // WASM output is in zig-out/bin/guillotine_mini.wasm
+    // TODO: Either add native build target or integrate with wasmtime
+    eprintln!("guillotine-mini WASM built: {}/zig-out/bin/guillotine_mini.wasm",
+              guillotine_mini_dir.display());
 }
