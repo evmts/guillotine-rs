@@ -2,8 +2,6 @@
 //!
 //! Bindings to lib/guillotine-mini/src/root_c.zig
 
-use std::ffi::c_void;
-
 /// Opaque handle to EVM instance (maps to ExecutionContext in Zig)
 #[repr(C)]
 pub struct EvmHandle {
@@ -173,6 +171,20 @@ extern "C" {
         code: *const u8,
         code_len: usize,
     );
+
+    /// Set account nonce (for pre-state setup)
+    ///
+    /// # Parameters
+    /// - `address_bytes`: 20-byte account address
+    /// - `nonce`: Nonce value
+    ///
+    /// # Returns
+    /// true on success, false on failure
+    pub fn evm_set_nonce(
+        handle: *mut EvmHandle,
+        address_bytes: *const u8,
+        nonce: u64,
+    ) -> bool;
 }
 
 #[cfg(test)]
