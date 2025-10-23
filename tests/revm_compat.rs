@@ -183,6 +183,49 @@ fn test_log_emission_simple() {
 }
 
 #[test]
+fn test_revert_maps_to_execution_result() {
+    // Bytecode: PUSH1 0x00 PUSH1 0x00 REVERT => 0x60006000fd
+    let mut db = CacheDB::new(EmptyDB::default());
+    let contract_addr = address!("5000000000000000000000000000000000000000");
+    let code = Bytes::from(hex::decode("60006000fd").unwrap());
+
+    db.insert_account_info(
+        contract_addr,
+        AccountInfo {
+            balance: U256::ZERO,
+            nonce: 0,
+            code_hash: revm::primitives::keccak256(&code),
+            code: Some(Bytecode::new_raw(code)),
+        },
+    );
+
+    let sender = address!("a94f5374fce5edbc8e2a8697c15331677e6ebf0b");
+    db.insert_account_info(
+        sender,
+        AccountInfo { balance: U256::from(1_000_000_u64), nonce: 0, code_hash: revm::primitives::KECCAK_EMPTY, code: None },
+    );
+
+    let ctx = Context::mainnet().modify_cfg_chained(|cfg| cfg.spec = SpecId::CANCUN).with_db(db);
+    let mut evm = GuillotineMiniEvm::new(ctx);
+
+    let tx = TxEnv::builder()
+        .caller(sender)
+        .kind(TxKind::Call(contract_addr))
+        .gas_limit(100_000)
+        .build()
+        .unwrap();
+
+    let rs = evm.transact(tx).unwrap();
+    match rs.result {
+        revm::context_interface::result::ExecutionResult::Revert { gas_used, ref output } => {
+            assert!(gas_used > 0);
+            assert_eq!(output.len(), 0);
+        }
+        _ => panic!("Expected revert result"),
+    }
+}
+
+#[test]
 fn test_storage_multi_slot_tracked() {
     // Bytecode: set slot1=2; set slot2=3; STOP
     // Sequence: PUSH1 0x02 PUSH1 0x01 SSTORE PUSH1 0x03 PUSH1 0x02 SSTORE STOP
