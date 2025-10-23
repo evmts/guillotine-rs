@@ -3,6 +3,7 @@
 //! This module provides a REVM-compatible EVM backed by guillotine-mini's
 //! Zig implementation via native FFI.
 
+pub mod config;
 pub mod database_bridge;
 pub mod evm;
 pub mod ffi;
@@ -14,3 +15,4 @@ pub mod types;
 pub mod interpreter;
 
 pub use evm::GuillotineMiniEvm;
+pub use config::{EvmConfigBuilder, EvmConfig, PrecompileResult, PrecompileError};

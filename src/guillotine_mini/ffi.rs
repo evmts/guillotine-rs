@@ -8,8 +8,99 @@ pub struct EvmHandle {
     _private: [u8; 0],
 }
 
+/// Opaque handle to EVM configuration
+#[repr(C)]
+pub struct EvmConfigHandle {
+    _private: [u8; 0],
+}
+
+/// FFI-compatible opcode handler callback
+/// Returns true if handled, false to continue with default behavior
+pub type FfiOpcodeHandler = extern "C" fn(
+    ctx: *mut std::ffi::c_void,
+    frame_ptr: usize,
+    opcode: u8,
+) -> bool;
+
+/// FFI-compatible precompile handler callback
+/// Returns true on success, false on failure
+pub type FfiPrecompileHandler = extern "C" fn(
+    ctx: *mut std::ffi::c_void,
+    address: *const u8, // 20 bytes
+    input: *const u8,
+    input_len: usize,
+    gas_limit: u64,
+    output_ptr: *mut *mut u8, // Handler sets this to allocated output
+    output_len: *mut usize,   // Handler sets output length
+    gas_used: *mut u64,       // Handler sets gas consumed
+) -> bool;
+
 #[link(name = "guillotine_mini")]
 extern "C" {
+    // ===== Config Builder API =====
+
+    /// Create a new EVM configuration with default values
+    pub fn evm_config_create() -> *mut EvmConfigHandle;
+
+    /// Destroy an EVM configuration
+    pub fn evm_config_destroy(handle: *mut EvmConfigHandle);
+
+    /// Set hardfork for the EVM
+    pub fn evm_config_set_hardfork(handle: *mut EvmConfigHandle, name: *const u8, len: usize);
+
+    /// Set maximum stack size (default: 1024)
+    pub fn evm_config_set_stack_size(handle: *mut EvmConfigHandle, size: u16);
+
+    /// Set maximum bytecode size (default: 24576)
+    pub fn evm_config_set_max_bytecode_size(handle: *mut EvmConfigHandle, size: u32);
+
+    /// Set maximum initcode size (default: 49152)
+    pub fn evm_config_set_max_initcode_size(handle: *mut EvmConfigHandle, size: u32);
+
+    /// Set block gas limit (default: 30000000)
+    pub fn evm_config_set_block_gas_limit(handle: *mut EvmConfigHandle, limit: u64);
+
+    /// Set memory initial capacity (default: 4096)
+    pub fn evm_config_set_memory_initial_capacity(handle: *mut EvmConfigHandle, capacity: usize);
+
+    /// Set memory limit (default: 0xFFFFFF)
+    pub fn evm_config_set_memory_limit(handle: *mut EvmConfigHandle, limit: u64);
+
+    /// Set maximum call depth (default: 1024)
+    pub fn evm_config_set_max_call_depth(handle: *mut EvmConfigHandle, depth: u16);
+
+    /// Set loop quota for safety counters (0 = disabled, >0 = max iterations)
+    pub fn evm_config_set_loop_quota(handle: *mut EvmConfigHandle, quota: u32);
+
+    /// Enable or disable system contract features
+    pub fn evm_config_enable_system_contracts(
+        handle: *mut EvmConfigHandle,
+        beacon_roots: bool,
+        block_hashes: bool,
+        deposits: bool,
+        withdrawals: bool,
+    );
+
+    /// Add a custom opcode handler override
+    /// Returns true on success, false on allocation failure
+    pub fn evm_config_add_opcode_override(
+        handle: *mut EvmConfigHandle,
+        opcode: u8,
+        handler: FfiOpcodeHandler,
+        ctx: *mut std::ffi::c_void,
+    ) -> bool;
+
+    /// Add a custom precompile handler override
+    /// Returns true on success, false on allocation failure
+    pub fn evm_config_add_precompile_override(
+        handle: *mut EvmConfigHandle,
+        address_bytes: *const u8, // 20 bytes
+        handler: FfiPrecompileHandler,
+        ctx: *mut std::ffi::c_void,
+    ) -> bool;
+
+    // ===== EVM Creation =====
+
     /// Create a new EVM instance
     ///
     /// # Parameters
@@ -24,6 +115,17 @@ extern "C" {
         hardfork_len: usize,
         log_level: u8,
     ) -> *mut EvmHandle;
+
+    /// Create a new EVM instance with custom configuration
+    /// Config handle is consumed (ownership transferred) and will be freed on evm_destroy
+    ///
+    /// # Parameters
+    /// - `config_handle`: Configuration handle (ownership transferred)
+    /// - `log_level`: 0=none, 1=err, 2=warn, 3=info, 4=debug
+    ///
+    /// # Returns
+    /// Opaque handle to EVM instance, or null on failure
+    pub fn evm_create_with_config(config_handle: *mut EvmConfigHandle, log_level: u8) -> *mut EvmHandle;
 
     /// Destroy an EVM instance
     pub fn evm_destroy(handle: *mut EvmHandle);
