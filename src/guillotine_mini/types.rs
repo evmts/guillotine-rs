@@ -49,6 +49,22 @@ pub fn i64_to_u64_gas(gas: i64) -> u64 {
     gas.max(0) as u64
 }
 
+/// Log entry as exported from guillotine-mini
+/// Not currently used in the wrapper, but useful for conversions/tests
+pub struct EvmLog {
+    pub address: Address,
+    pub topics: Vec<U256>,
+    pub data: Bytes,
+}
+
+/// Storage change entry captured from guillotine-mini
+/// Represents a single slot write in final storage state
+pub struct StorageChange {
+    pub address: Address,
+    pub slot: U256,
+    pub value: U256,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
