@@ -3,12 +3,12 @@
 //! Provides a high-level interface to guillotine-mini that integrates with
 //! REVM's Database trait for state management.
 
-use super::{database_bridge, ffi, types};
+use super::{database_bridge, error::EvmAdapterError, ffi, types};
 use revm::{
     context::{Cfg, Context, TxEnv},
     context_interface::result::{ExecutionResult, Output, ResultAndState, SuccessReason},
     database_interface::Database,
-    primitives::{hardfork::SpecId, Address, Bytes, TxKind, U256},
+    primitives::{hardfork::SpecId, Address, Bytes, TxKind, U256, B256, Log as RevmLog, LogData},
     state::{Account, AccountInfo, AccountStatus, EvmState, EvmStorageSlot},
 };
 use std::collections::HashMap;
@@ -64,13 +64,48 @@ where
         Self { ctx, handle }
     }
 
+    /// Fallible constructor that returns a proper error instead of panicking
+    pub fn try_new(
+        ctx: Context<BLOCK, TX, CFG, DB, JOURNAL, CHAIN>,
+    ) -> Result<Self, EvmAdapterError<DB::Error>> {
+        // Map REVM SpecId to hardfork name
+        let hardfork_name = match ctx.cfg.spec() {
+            SpecId::FRONTIER | SpecId::FRONTIER_THAWING => "Frontier",
+            SpecId::HOMESTEAD | SpecId::DAO_FORK => "Homestead",
+            SpecId::TANGERINE => "Tangerine",
+            SpecId::SPURIOUS_DRAGON => "Spurious",
+            SpecId::BYZANTIUM => "Byzantium",
+            SpecId::CONSTANTINOPLE | SpecId::PETERSBURG => "Constantinople",
+            SpecId::ISTANBUL | SpecId::MUIR_GLACIER => "Istanbul",
+            SpecId::BERLIN => "Berlin",
+            SpecId::LONDON | SpecId::ARROW_GLACIER | SpecId::GRAY_GLACIER => "London",
+            SpecId::MERGE => "Merge",
+            SpecId::SHANGHAI => "Shanghai",
+            SpecId::CANCUN => "Cancun",
+            SpecId::PRAGUE => "Prague",
+            SpecId::OSAKA => "Osaka",
+            _ => "Cancun",
+        };
+
+        let handle = unsafe { ffi::evm_create(hardfork_name.as_ptr(), hardfork_name.len(), 0) };
+        if handle.is_null() {
+            return Err(EvmAdapterError::Ffi("evm_create"));
+        }
+        Ok(Self { ctx, handle })
+    }
+
     /// Execute a transaction using guillotine-mini
-    pub fn transact(&mut self, tx: TxEnv) -> Result<ResultAndState, DB::Error> {
+    pub fn transact(&mut self, tx: TxEnv) -> Result<ResultAndState, EvmAdapterError<DB::Error>> {
         // Extract contract address and bytecode
         let (contract_addr, bytecode) = match tx.kind {
             TxKind::Call(addr) => {
                 // Get code from database
-                let acc = self.ctx.journaled_state.db_mut().basic(addr)?;
+                let acc = self
+                    .ctx
+                    .journaled_state
+                    .db_mut()
+                    .basic(addr)
+                    .map_err(EvmAdapterError::Db)?;
                 let code = acc
                     .and_then(|a| a.code)
                     .map(|c| c.bytecode().to_vec())
@@ -88,10 +123,10 @@ where
         database_bridge::sync_account_to_ffi(self.handle, self.ctx.journaled_state.db_mut(), contract_addr)?;
 
         // Set bytecode
-        let bytecode_set = unsafe {
-            ffi::evm_set_bytecode(self.handle, bytecode.as_ptr(), bytecode.len())
-        };
-        assert!(bytecode_set, "Failed to set bytecode");
+        let bytecode_set = unsafe { ffi::evm_set_bytecode(self.handle, bytecode.as_ptr(), bytecode.len()) };
+        if !bytecode_set {
+            return Err(EvmAdapterError::Ffi("evm_set_bytecode"));
+        }
 
         // Convert addresses and values to FFI format
         let caller_bytes = types::address_to_bytes(&tx.caller);
@@ -111,7 +146,9 @@ where
                 calldata.len(),
             )
         };
-        assert!(ctx_set, "Failed to set execution context");
+        if !ctx_set {
+            return Err(EvmAdapterError::Ffi("evm_set_execution_context"));
+        }
 
         // Set blockchain context
         let block = &self.ctx.block;
@@ -143,9 +180,8 @@ where
             );
         }
 
-        // Execute
-        let success = unsafe { ffi::evm_execute(self.handle) };
-        assert!(success, "Execution failed");
+        // Execute (do not treat returned bool as fatal; it mirrors success status)
+        let _ = unsafe { ffi::evm_execute(self.handle) };
 
         // Get results
         let gas_used = unsafe { ffi::evm_get_gas_used(self.handle) };
@@ -160,41 +196,99 @@ where
             }
         }
 
-        // Build execution result
-        let output = if is_success {
-            Output::Call(Bytes::from(output_buf))
-        } else {
-            Output::Call(Bytes::default())
-        };
+        // Extract gas refund from guillotine-mini
+        let gas_refund = unsafe { ffi::evm_get_gas_refund(self.handle) };
 
-        let result = ExecutionResult::Success {
-            reason: SuccessReason::Return,
-            gas_used: types::i64_to_u64_gas(gas_used),
-            gas_refunded: 0, // Guillotine-mini doesn't expose refunds yet
-            logs: vec![],     // TODO: Get logs from guillotine-mini
-            output,
+        // Extract logs from guillotine-mini
+        let log_count = unsafe { ffi::evm_get_log_count(self.handle) };
+        let mut logs: Vec<RevmLog> = Vec::with_capacity(log_count);
+        for i in 0..log_count {
+            let mut log_address = [0u8; 20];
+            let mut topics_count: usize = 0;
+            let mut topics_buf = [0u8; 128]; // 4 topics * 32 bytes
+            let mut data_len: usize = 0;
+            let mut data_buf = vec![0u8; 4096];
+
+            let ok = unsafe {
+                ffi::evm_get_log(
+                    self.handle,
+                    i,
+                    log_address.as_mut_ptr(),
+                    &mut topics_count,
+                    topics_buf.as_mut_ptr(),
+                    &mut data_len,
+                    data_buf.as_mut_ptr(),
+                    data_buf.len(),
+                )
+            };
+
+            if ok {
+                let address = types::address_from_bytes(&log_address);
+                let mut topics = Vec::with_capacity(topics_count);
+                for t in 0..topics_count {
+                    let start = t * 32;
+                    let end = start + 32;
+                    let mut topic_bytes = [0u8; 32];
+                    topic_bytes.copy_from_slice(&topics_buf[start..end]);
+                    topics.push(B256::from(topic_bytes));
+                }
+                data_buf.truncate(data_len);
+                let log_data = LogData::new(topics, Bytes::from(data_buf)).expect("valid log data");
+                logs.push(RevmLog { address, data: log_data });
+            }
+        }
+
+        let gas_used_u = types::i64_to_u64_gas(gas_used);
+        let result = if is_success {
+            let output = Output::Call(Bytes::from(output_buf));
+            ExecutionResult::Success {
+                reason: SuccessReason::Return,
+                gas_used: gas_used_u,
+                gas_refunded: gas_refund,
+                logs,
+                output,
+            }
+        } else {
+            ExecutionResult::Revert {
+                gas_used: gas_used_u,
+                output: Bytes::from(output_buf),
+            }
         };
 
         // Collect state changes by reading back from guillotine-mini
         // For now, we'll extract storage changes for the contract address
         let mut state = EvmState::default();
 
-        // Read storage changes back
-        // We need to track which slots were accessed - for now, check slot 0 and 1
-        // (this is a simplified approach; full implementation would track all accessed slots)
-        let mut storage_changes = HashMap::new();
+        // Extract all storage changes from guillotine-mini
+        let change_count = unsafe { ffi::evm_get_storage_change_count(self.handle) };
+        let mut changes_by_address: HashMap<Address, HashMap<U256, U256>> = HashMap::new();
 
-        // Check common slots (0, 1, etc.)
-        for slot_num in 0..10 {
-            let slot = U256::from(slot_num);
-            let value = database_bridge::read_storage_from_ffi(self.handle, contract_addr, slot);
-            if !value.is_zero() {
-                storage_changes.insert(slot, value);
+        for i in 0..change_count {
+            let mut addr_bytes = [0u8; 20];
+            let mut slot_bytes = [0u8; 32];
+            let mut value_bytes = [0u8; 32];
+            let ok = unsafe {
+                ffi::evm_get_storage_change(
+                    self.handle,
+                    i,
+                    addr_bytes.as_mut_ptr(),
+                    slot_bytes.as_mut_ptr(),
+                    value_bytes.as_mut_ptr(),
+                )
+            };
+            if ok {
+                let addr = types::address_from_bytes(&addr_bytes);
+                let slot = types::u256_from_be_bytes(&slot_bytes);
+                let value = types::u256_from_be_bytes(&value_bytes);
+                changes_by_address
+                    .entry(addr)
+                    .or_insert_with(HashMap::new)
+                    .insert(slot, value);
             }
         }
 
-        // Build account state with storage changes
-        if !storage_changes.is_empty() || !is_success {
+        // Build account states with actual storage changes
+        for (addr, slots) in changes_by_address {
             let mut account = Account {
                 info: AccountInfo::default(),
                 storage: HashMap::default(),
@@ -202,9 +296,9 @@ where
                 transaction_id: 0,
             };
 
-            for (key, value) in storage_changes {
+            for (slot, value) in slots {
                 account.storage.insert(
-                    key,
+                    slot,
                     EvmStorageSlot {
                         original_value: U256::ZERO,
                         present_value: value,
@@ -214,7 +308,7 @@ where
                 );
             }
 
-            state.insert(contract_addr, account);
+            state.insert(addr, account);
         }
 
         Ok(ResultAndState { result, state })
