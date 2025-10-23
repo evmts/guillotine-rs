@@ -6,6 +6,7 @@
 pub mod database_bridge;
 pub mod evm;
 pub mod ffi;
+pub mod error;
 pub mod types;
 
 // Legacy interpreter stub (deprecated in favor of evm wrapper)
