@@ -3,7 +3,7 @@
     REVM integration for guillotine-mini EVM engine.
     <br/>
     <br/>
-    <img width="1024" height="1024" alt="guillotine-rs" src="https://github.com/user-attachments/assets/492fabbc-d8d0-4f5b-b9f5-ea05adc5f8ca" />
+    <img width="1024" height="1024" alt="guillotine-rs-logo" src="https://github.com/user-attachments/assets/d8107fbd-12b2-4bb4-be7e-de86c3fced44" />
   </h1>
   <sup>
     <a href="https://github.com/evmts/guillotine-rs">
