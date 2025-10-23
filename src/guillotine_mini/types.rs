@@ -12,6 +12,12 @@ pub fn address_to_bytes(addr: &Address) -> [u8; 20] {
     addr.0 .0
 }
 
+/// Convert 20-byte array from FFI to REVM Address
+#[inline]
+pub fn address_from_bytes(bytes: &[u8; 20]) -> Address {
+    Address::from(*bytes)
+}
+
 /// Convert REVM U256 to 32-byte big-endian array for FFI
 #[inline]
 pub fn u256_to_be_bytes(value: &U256) -> [u8; 32] {
@@ -28,6 +34,19 @@ pub fn u256_from_be_bytes(bytes: &[u8; 32]) -> U256 {
 #[inline]
 pub fn bytes_to_slice(bytes: &Bytes) -> &[u8] {
     bytes.as_ref()
+}
+
+/// Convert slice to REVM Bytes
+#[inline]
+pub fn bytes_from_slice(slice: &[u8]) -> Bytes {
+    Bytes::copy_from_slice(slice)
+}
+
+/// Convert i64 to u64 (gas conversion)
+/// Returns 0 if negative
+#[inline]
+pub fn i64_to_u64_gas(gas: i64) -> u64 {
+    gas.max(0) as u64
 }
 
 #[cfg(test)]
