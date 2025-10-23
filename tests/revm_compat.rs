@@ -1,12 +1,13 @@
 //! REVM compatibility tests for guillotine-mini adapter
 //! Uses ethereum execution-specs fixtures to verify correctness
 
+use guillotine_rs::GuillotineMiniEvm;
 use revm::{
     context::{Context, TxEnv},
     database::{CacheDB, EmptyDB},
     primitives::{address, hardfork::SpecId, Bytes, TxKind, U256},
-    ExecuteEvm, MainBuilder, MainContext,
     state::{AccountInfo, Bytecode},
+    MainContext,
 };
 
 #[test]
@@ -49,20 +50,20 @@ fn test_simple_chainid_cancun() {
     let ctx = Context::mainnet()
         .modify_cfg_chained(|cfg| cfg.spec = SpecId::CANCUN)
         .with_db(db);
-    let mut evm = ctx.build_mainnet();
+    let mut evm = GuillotineMiniEvm::new(ctx);
 
     // Execute transaction
-    let result = evm.transact(
-        TxEnv::builder()
-            .caller(sender)
-            .kind(TxKind::Call(contract_addr))
-            .data(Bytes::default())
-            .value(U256::ZERO)
-            .gas_limit(100_000_000)
-            .gas_price(10)
-            .build()
-            .unwrap()
-    ).unwrap();
+    let tx = TxEnv::builder()
+        .caller(sender)
+        .kind(TxKind::Call(contract_addr))
+        .data(Bytes::default())
+        .value(U256::ZERO)
+        .gas_limit(100_000_000)
+        .gas_price(10)
+        .build()
+        .unwrap();
+
+    let result = evm.transact(tx).unwrap();
 
     // Verify execution succeeded
     assert!(result.result.is_success(), "Transaction should succeed");
@@ -118,16 +119,16 @@ fn test_simple_add() {
     let ctx = Context::mainnet()
         .modify_cfg_chained(|cfg| cfg.spec = SpecId::CANCUN)
         .with_db(db);
-    let mut evm = ctx.build_mainnet();
+    let mut evm = GuillotineMiniEvm::new(ctx);
 
-    let result = evm.transact(
-        TxEnv::builder()
-            .caller(sender)
-            .kind(TxKind::Call(contract_addr))
-            .gas_limit(100_000)
-            .build()
-            .unwrap()
-    ).unwrap();
+    let tx = TxEnv::builder()
+        .caller(sender)
+        .kind(TxKind::Call(contract_addr))
+        .gas_limit(100_000)
+        .build()
+        .unwrap();
+
+    let result = evm.transact(tx).unwrap();
 
     assert!(result.result.is_success());
 
