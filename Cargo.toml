@@ -1,0 +1,17 @@
+[package]
+name = "guillotine-rs"
+version = "0.1.0"
+edition = "2021"
+authors = []
+license = "MIT OR Apache-2.0"
+description = "A Rust library"
+repository = "https://github.com/yourusername/guillotine-rs"
+keywords = []
+categories = []
+
+[dependencies]
+alloy = "1.0.41"
+revm = "30.2.0"
+
+[dev-dependencies]
+hex = "0.4.3"
