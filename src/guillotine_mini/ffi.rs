@@ -133,7 +133,7 @@ extern "C" {
         address_bytes: *const u8,
         key_bytes: *const u8,
         value_bytes: *const u8,
-    );
+    ) -> bool;
 
     /// Get storage value
     ///
@@ -146,7 +146,7 @@ extern "C" {
         address_bytes: *const u8,
         key_bytes: *const u8,
         value_bytes: *mut u8,
-    );
+    ) -> bool;
 
     /// Set account balance (for pre-state setup)
     ///
@@ -157,7 +157,7 @@ extern "C" {
         handle: *mut EvmHandle,
         address_bytes: *const u8,
         balance_bytes: *const u8,
-    );
+    ) -> bool;
 
     /// Set account code (for pre-state setup)
     ///
@@ -170,7 +170,7 @@ extern "C" {
         address_bytes: *const u8,
         code: *const u8,
         code_len: usize,
-    );
+    ) -> bool;
 
     /// Set account nonce (for pre-state setup)
     ///
@@ -184,6 +184,47 @@ extern "C" {
         handle: *mut EvmHandle,
         address_bytes: *const u8,
         nonce: u64,
+    ) -> bool;
+
+    // ===== Added: Result introspection (logs, refunds, storage changes) =====
+
+    /// Get number of log entries in the last execution
+    pub fn evm_get_log_count(handle: *mut EvmHandle) -> usize;
+
+    /// Get a log entry by index. Returns true on success.
+    /// - `address_out`: 20-byte buffer
+    /// - `topics_count_out`: number of topics returned
+    /// - `topics_out`: buffer for up to 4 topics (4 * 32 bytes)
+    /// - `data_len_out`: actual data length
+    /// - `data_out`: data buffer
+    /// - `data_max_len`: capacity of `data_out`
+    pub fn evm_get_log(
+        handle: *mut EvmHandle,
+        index: usize,
+        address_out: *mut u8,
+        topics_count_out: *mut usize,
+        topics_out: *mut u8,
+        data_len_out: *mut usize,
+        data_out: *mut u8,
+        data_max_len: usize,
+    ) -> bool;
+
+    /// Get gas refund counter after execution
+    pub fn evm_get_gas_refund(handle: *mut EvmHandle) -> u64;
+
+    /// Get number of storage changes (entries present in storage map)
+    pub fn evm_get_storage_change_count(handle: *mut EvmHandle) -> usize;
+
+    /// Get storage change by index. Returns true on success.
+    /// - `address_out`: 20-byte buffer
+    /// - `slot_out`: 32-byte buffer (big-endian u256)
+    /// - `value_out`: 32-byte buffer (big-endian u256)
+    pub fn evm_get_storage_change(
+        handle: *mut EvmHandle,
+        index: usize,
+        address_out: *mut u8,
+        slot_out: *mut u8,
+        value_out: *mut u8,
     ) -> bool;
 }
 
