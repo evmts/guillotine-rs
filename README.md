@@ -3,7 +3,7 @@
     REVM integration for guillotine
     <br/>
     <br/>
-    <img width="1024" height="1024" alt="guillotine-rs-logo" src="https://github.com/user-attachments/assets/d8107fbd-12b2-4bb4-be7e-de86c3fced44" />
+    <img width="1024" height="1024" alt="image" src="https://github.com/user-attachments/assets/5b3304d9-b4d7-47cf-b7eb-7b475808e5a1" />
   </h1>
   <sup>
     <a href="https://github.com/evmts/guillotine-rs">
