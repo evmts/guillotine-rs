@@ -24,6 +24,8 @@
 
 ## Installation
 
+### WARNING: This repo is currently vibes and hasn't been reviewed by a human yet
+
 **Recommended:** Build from source
 
 ```bash
@@ -79,8 +81,8 @@ High-performance REVM execution backed by the Zig-based [guillotine-mini](https:
   - [`EvmAdapterError`](./src/guillotine_mini/error.rs) — typed error handling
     - `Db(DbErr)` — database-related error from REVM
     - `Ffi(&'static str)` — FFI call failed (bool=false or null handle)
-    <br/>
-    <br/>
+      <br/>
+      <br/>
 - [**Database Bridge**](#database-bridge)
   - [`sync_account_to_ffi`](./src/guillotine_mini/database_bridge.rs#L14) — sync REVM account state to guillotine-mini (balance, nonce, code)
   - [`sync_storage_to_ffi`](./src/guillotine_mini/database_bridge.rs#L58) — sync single storage slot to guillotine-mini
@@ -114,8 +116,8 @@ High-performance REVM execution backed by the Zig-based [guillotine-mini](https:
     - [`evm_get_log`](./src/guillotine_mini/ffi.rs#L203) — get log entry by index (address, topics, data)
     - [`evm_get_storage_change_count`](./src/guillotine_mini/ffi.rs#L215) — get number of storage changes
     - [`evm_get_storage_change`](./src/guillotine_mini/ffi.rs#L224) — get storage change by index (address, slot, value)
-    <br/>
-    <br/>
+      <br/>
+      <br/>
 - [**Type Conversions**](#type-conversions)
   - [`address_to_bytes`](./src/guillotine_mini/types.rs#L9) — convert REVM Address to [20]u8
   - [`address_from_bytes`](./src/guillotine_mini/types.rs#L14) — convert [20]u8 to REVM Address
@@ -184,6 +186,7 @@ cargo test -- --nocapture
 ```
 
 **Test coverage:**
+
 - [Storage writes across multiple slots](./tests/revm_compat.rs#L186)
 - [Gas refund behavior on SSTORE operations](./tests/revm_compat.rs#L228)
 - [Log emission (LOG0 instruction)](./tests/revm_compat.rs#L141)
