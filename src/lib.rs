@@ -1,14 +1,9 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+//! Guillotine-rs: REVM-compatible EVM using Guillotine interpreters
+//!
+//! This crate provides drop-in replacements for REVM's interpreter using
+//! high-performance Zig implementations from the Guillotine project.
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub mod guillotine_mini;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+// Re-export for convenience
+pub use guillotine_mini::GuillotineMiniInterpreter;
