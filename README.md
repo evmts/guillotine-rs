@@ -20,18 +20,36 @@
 
 ## Requirements
 
-[Rust 1.75+ (Cargo)](https://www.rust-lang.org/tools/install) — [Zig 0.15.1+](https://ziglang.org/download/)
+- **[Rust 1.75+](https://www.rust-lang.org/tools/install)** (Cargo)
+- **[Zig 0.15.1+](https://ziglang.org/download/)** (Required for building guillotine-mini)
+- **git** (Required for submodule initialization)
+
+### Installing Zig
+
+Zig is required to build the underlying EVM engine. Install it before building:
+
+**macOS:**
+```bash
+brew install zig
+```
+
+**Linux / Windows:**
+Download from https://ziglang.org/download/
+
+Verify installation:
+```bash
+zig version  # Should show 0.15.1 or later
+```
 
 ## Installation
 
 ### WARNING: This repo is currently vibes and hasn't been reviewed by a human yet
 
-**Recommended:** Build from source
+**Recommended:** Build from source with git submodules
 
 ```bash
-git clone https://github.com/evmts/guillotine-rs.git
+git clone --recursive https://github.com/evmts/guillotine-rs.git
 cd guillotine-rs
-git submodule update --init --recursive
 cargo build --release
 ```
 
@@ -39,8 +57,10 @@ cargo build --release
 
 ```toml
 [dependencies]
-guillotine-rs = { git = "https://github.com/evmts/guillotine-rs" }
+guillotine-rs = { git = "https://github.com/evmts/guillotine-rs", submodules = true }
 ```
+
+**Note:** Installing directly from crates.io (`cargo add guillotine-rs`) is not currently supported due to git submodule dependencies. You must clone the repository with `--recursive` to include the guillotine-mini submodule.
 
 <br />
 
@@ -193,12 +213,60 @@ cargo test -- --nocapture
 - [Revert handling with proper ExecutionResult mapping](./tests/revm_compat.rs#L186)
 - [Basic arithmetic operations](./tests/revm_compat.rs#L115)
 
+## Troubleshooting
+
+### Build Errors
+
+**"Zig compiler not found!"**
+```bash
+# Install Zig 0.15.1 or later
+brew install zig  # macOS
+# or download from https://ziglang.org/download/
+
+# Verify installation
+zig version
+```
+
+**"Zig version too old!"**
+```bash
+# Upgrade to Zig 0.15.1+
+brew upgrade zig  # macOS
+# or download latest from https://ziglang.org/download/
+```
+
+**"git submodule init failed"**
+```bash
+# If you installed via cargo, clone manually instead:
+git clone --recursive https://github.com/evmts/guillotine-rs
+cd guillotine-rs
+cargo build
+```
+
+**"Failed to initialize submodules"**
+```bash
+# Initialize submodules manually:
+git submodule update --init --recursive
+cargo build
+```
+
+**"zig build failed"**
+- Ensure Zig version is 0.15.1 or later
+- Try cleaning and rebuilding:
+  ```bash
+  cd lib/guillotine-mini
+  rm -rf zig-out zig-cache
+  cd ../..
+  cargo clean
+  cargo build
+  ```
+- Report issues at https://github.com/evmts/guillotine-rs/issues
+
 ## Notes and Limits
 
 - Storage extraction enumerates final non-zero slots; zeroed slots are not emitted
 - Logs are emitted by Zig's LOG handlers and included in results
 - All hardforks from Frontier to Osaka are supported via REVM's SpecId mapping
-- Submodule ([guillotine-mini](https://github.com/evmts/guillotine-mini)) must be initialized: `git submodule update --init --recursive`
+- **Submodules required:** This package uses git submodules and cannot be installed directly from crates.io. Use git installation method above.
 
 ## More
 
