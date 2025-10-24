@@ -11,17 +11,12 @@ homepage = "https://github.com/evmts/guillotine-rs"
 readme = "README.md"
 keywords = ["evm", "ethereum", "revm", "blockchain", "virtual-machine"]
 categories = ["cryptography::cryptocurrencies", "development-tools"]
-# Note: guillotine-mini submodule files will be included via git submodule
-# Users must clone with --recursive or the build script will initialize submodules
+# Note: Dependencies are fetched via zig fetch during build
 exclude = [
     ".github/**",
-    "lib/guillotine-mini/execution-specs/**",
-    "lib/guillotine-mini/ethereum-tests/**",
-    "lib/guillotine/specs/**",
-    "lib/guillotine/test/**",
-    "lib/*/zig-out/**",
-    "lib/*/zig-cache/**",
-    "lib/*/target/**",
+    ".zig-cache/**",
+    "zig-out/**",
+    "zig-cache/**",
     "*.md",
     "!README.md",
 ]

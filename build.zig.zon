@@ -1,0 +1,20 @@
+.{
+    .name = .guillotine_rs,
+    .version = "0.1.0",
+    .fingerprint = 0x3d00d64ccff015b8,
+    .minimum_zig_version = "0.15.1",
+    .dependencies = .{
+        .guillotine_mini = .{
+            .url = "https://github.com/evmts/guillotine-mini/archive/9446a3d05e9259c7f9c90f1fe0a52760b47e1700.tar.gz",
+            .hash = "guillotine_mini-0.0.0-ARystYpqBgDeGJo2QHs68BK35u7pGIK2qCZLgLvbGuEp",
+        },
+        .guillotine_primitives = .{
+            .url = "https://github.com/evmts/primitives/archive/refs/heads/main.tar.gz",
+            .hash = "guillotine_primitives-0.0.0-yOt5gSBWkgBbcfH9pdFWgRhAv9fcx8MpwTEAgWI7AGUC",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+    },
+}
