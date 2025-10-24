@@ -2,12 +2,29 @@
 name = "guillotine-rs"
 version = "0.1.0"
 edition = "2021"
-authors = []
+authors = ["EVMts Contributors"]
 license = "MIT OR Apache-2.0"
-description = "A Rust library"
-repository = "https://github.com/yourusername/guillotine-rs"
-keywords = []
-categories = []
+description = "High-performance REVM-compatible EVM execution backed by Zig's guillotine-mini engine with FFI integration"
+repository = "https://github.com/evmts/guillotine-rs"
+documentation = "https://docs.rs/guillotine-rs"
+homepage = "https://github.com/evmts/guillotine-rs"
+readme = "README.md"
+keywords = ["evm", "ethereum", "revm", "blockchain", "virtual-machine"]
+categories = ["cryptography::cryptocurrencies", "development-tools"]
+# Note: guillotine-mini submodule files will be included via git submodule
+# Users must clone with --recursive or the build script will initialize submodules
+exclude = [
+    ".github/**",
+    "lib/guillotine-mini/execution-specs/**",
+    "lib/guillotine-mini/ethereum-tests/**",
+    "lib/guillotine/specs/**",
+    "lib/guillotine/test/**",
+    "lib/*/zig-out/**",
+    "lib/*/zig-cache/**",
+    "lib/*/target/**",
+    "*.md",
+    "!README.md",
+]
 
 [dependencies]
 alloy = "1.0.41"
