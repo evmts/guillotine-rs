@@ -87,10 +87,21 @@ fn main() {
         }
     }
 
-    // Build guillotine-mini using zig build (fetches dependency automatically)
+    // Build guillotine-mini using zig build-deps (just Zig, not cargo)
     eprintln!("Building guillotine-mini Zig library...");
+
+    // Use OUT_DIR for zig build artifacts to keep source tree clean
+    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
+    let zig_cache_dir = out_dir.join(".zig-cache");
+    let zig_out_dir = out_dir.join("zig-out");
+
     let status = Command::new("zig")
-        .args(&["build"])
+        .args(&[
+            "build",
+            "build-deps",  // Use build-deps step to avoid circular cargo build
+            "--cache-dir", zig_cache_dir.to_str().unwrap(),
+            "--prefix", zig_out_dir.to_str().unwrap(),
+        ])
         .current_dir(&manifest_dir)
         .status()
         .expect("Failed to execute zig build command");
@@ -106,10 +117,25 @@ fn main() {
         panic!("zig build failed");
     }
 
-    // Tell cargo where to find the library
-    let lib_dir = manifest_dir.join("zig-out/lib");
+    // Tell cargo where to find the libraries
+    let lib_dir = zig_out_dir.join("lib");
     println!("cargo:rustc-link-search=native={}", lib_dir.display());
     println!("cargo:rustc-link-lib=static=guillotine_mini");
+
+    // Also link crypto_wrappers from the zig cache
+    let zig_cache_lib_dir = zig_cache_dir.join("o");
+    // Find crypto_wrappers in cache subdirectories
+    if let Ok(entries) = std::fs::read_dir(&zig_cache_lib_dir) {
+        for entry in entries.flatten() {
+            let crypto_lib = entry.path().join("libcrypto_wrappers.a");
+            if crypto_lib.exists() {
+                println!("cargo:rustc-link-search=native={}", entry.path().display());
+                println!("cargo:rustc-link-lib=static=crypto_wrappers");
+                eprintln!("Found crypto_wrappers: {}", crypto_lib.display());
+                break;
+            }
+        }
+    }
 
     eprintln!("guillotine-mini native library built: {}/libguillotine_mini.a",
               lib_dir.display());
