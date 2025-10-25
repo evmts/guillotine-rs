@@ -1,6 +1,6 @@
 [package]
 name = "guillotine-rs"
-version = "0.1.0"
+version = "0.1.3"
 edition = "2021"
 authors = ["EVMts Contributors"]
 license = "MIT OR Apache-2.0"
@@ -19,6 +19,11 @@ exclude = [
     "zig-cache/**",
     "*.md",
     "!README.md",
+    "**/.zig-cache/**",
+    "**/zig-out/**",
+    "tests/config_test.rs",
+    "tests/revm_compat.rs",
+    "tests/wrapper_test.rs",
 ]
 
 [dependencies]
