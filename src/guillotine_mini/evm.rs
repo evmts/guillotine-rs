@@ -3,7 +3,7 @@
 //! Provides a high-level interface to guillotine-mini that integrates with
 //! REVM's Database trait for state management.
 
-use super::{config::EvmConfig, database_bridge, error::EvmAdapterError, ffi, types};
+use super::{database_bridge, error::EvmAdapterError, ffi, types};
 use revm::{
     context::{Cfg, Context, TxEnv},
     context_interface::result::{ExecutionResult, Output, ResultAndState, SuccessReason},
@@ -94,36 +94,37 @@ where
         Ok(Self { ctx, handle })
     }
 
-    /// Create new GuillotineMiniEvm with custom configuration
-    ///
-    /// # Arguments
-    /// * `ctx` - REVM context
-    /// * `config` - Custom EVM configuration (consumed)
-    ///
-    /// # Example
-    /// ```ignore
-    /// use guillotine_rs::guillotine_mini::{GuillotineMiniEvm, EvmConfigBuilder};
-    /// use revm::Context;
-    ///
-    /// let config = EvmConfigBuilder::new()
-    ///     .hardfork("Cancun")
-    ///     .stack_size(512)
-    ///     .build();
-    ///
-    /// let evm = GuillotineMiniEvm::with_config(ctx, config).unwrap();
-    /// ```
-    pub fn with_config(
-        ctx: Context<BLOCK, TX, CFG, DB, JOURNAL, CHAIN>,
-        config: EvmConfig,
-    ) -> Result<Self, EvmAdapterError<DB::Error>> {
-        let config_handle = config.into_raw();
-
-        let handle = unsafe { ffi::evm_create_with_config(config_handle, 0) };
-        if handle.is_null() {
-            return Err(EvmAdapterError::Ffi("evm_create_with_config"));
-        }
-        Ok(Self { ctx, handle })
-    }
+    // TODO: Re-enable once guillotine-mini upstream adds config FFI functions
+    // /// Create new GuillotineMiniEvm with custom configuration
+    // ///
+    // /// # Arguments
+    // /// * `ctx` - REVM context
+    // /// * `config` - Custom EVM configuration (consumed)
+    // ///
+    // /// # Example
+    // /// ```ignore
+    // /// use guillotine_rs::guillotine_mini::{GuillotineMiniEvm, EvmConfigBuilder};
+    // /// use revm::Context;
+    // ///
+    // /// let config = EvmConfigBuilder::new()
+    // ///     .hardfork("Cancun")
+    // ///     .stack_size(512)
+    // ///     .build();
+    // ///
+    // /// let evm = GuillotineMiniEvm::with_config(ctx, config).unwrap();
+    // /// ```
+    // pub fn with_config(
+    //     ctx: Context<BLOCK, TX, CFG, DB, JOURNAL, CHAIN>,
+    //     config: EvmConfig,
+    // ) -> Result<Self, EvmAdapterError<DB::Error>> {
+    //     let config_handle = config.into_raw();
+    //
+    //     let handle = unsafe { ffi::evm_create_with_config(config_handle, 0) };
+    //     if handle.is_null() {
+    //         return Err(EvmAdapterError::Ffi("evm_create_with_config"));
+    //     }
+    //     Ok(Self { ctx, handle })
+    // }
 
     /// Execute a transaction using guillotine-mini
     pub fn transact(&mut self, tx: TxEnv) -> Result<ResultAndState, EvmAdapterError<DB::Error>> {
