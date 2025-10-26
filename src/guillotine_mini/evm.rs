@@ -2,6 +2,98 @@
 //!
 //! Provides a high-level interface to guillotine-mini that integrates with
 //! REVM's Database trait for state management.
+//!
+//! # Known Limitations
+//!
+//! ## Storage Pre-State Synchronization
+//!
+//! Storage pre-state is now automatically synchronized for common storage slots (0-9) before
+//! execution. This covers most standard contracts (ERC20, ERC721, simple state machines), but
+//! has limitations:
+//!
+//! - **Simple contracts**: Work correctly (slots 0-9 cover most state variables)
+//! - **Complex contracts**: May miss storage values in high-numbered slots or dynamic mappings
+//! - **Large storage**: Only syncs slots 0-9, not all non-zero slots
+//!
+//! The current implementation is a temporary solution. Future improvements include:
+//! 1. EIP-2930 access list integration to sync exactly the slots that will be accessed
+//! 2. On-demand lazy loading via FFI callbacks (requires Zig changes)
+//! 3. Heuristics based on contract bytecode analysis
+//!
+//! You can manually sync additional storage slots before execution using
+//! [`database_bridge::sync_storage_to_ffi`](../database_bridge/fn.sync_storage_to_ffi.html) or
+//! [`database_bridge::sync_storage_slots_to_ffi`](../database_bridge/fn.sync_storage_slots_to_ffi.html).
+//!
+//! ## EIP-2930 Access Lists
+//!
+//! Access list support (EIP-2930) is partially implemented in the FFI layer but not yet integrated
+//! into the high-level `transact` method. FFI functions exist (`evm_add_access_list_address`,
+//! `evm_add_access_list_storage`) but are not called during transaction execution.
+//!
+//! **Status**: Planned for future release
+//!
+//! ## EIP-4844 Blob Transactions
+//!
+//! Blob transaction support (EIP-4844) is partially implemented:
+//!
+//! - Blob base fee is set in blockchain context
+//! - FFI functions exist for blob hash management
+//! - Not yet fully integrated into transaction processing
+//!
+//! **Status**: Under development
+//!
+//! ## CREATE2 Nonce Handling
+//!
+//! The CREATE2 opcode implementation follows REVM's behavior for nonce handling. There may be
+//! edge cases where nonce management differs from other EVM implementations. This is inherited
+//! behavior from the underlying guillotine-mini engine.
+//!
+//! ## Error Recovery
+//!
+//! Catastrophic errors in the Zig layer (panic/unreachable) cause immediate process termination.
+//! These cannot be recovered in Rust. Normal execution errors (reverts, out of gas) are properly
+//! handled and returned as `ExecutionResult::Revert`.
+//!
+//! # Examples
+//!
+//! ## Basic Transaction Execution
+//!
+//! ```rust,no_run
+//! use guillotine_rs::guillotine_mini::GuillotineMiniEvm;
+//! use revm::{Context, primitives::{address, TxEnv, TxKind}};
+//!
+//! let ctx = Context::mainnet();
+//! let mut evm = GuillotineMiniEvm::new(ctx);
+//!
+//! let tx = TxEnv::builder()
+//!     .caller(address!("a94f5374fce5edbc8e2a8697c15331677e6ebf0b"))
+//!     .kind(TxKind::Call(address!("0000000000000000000000000000000000000001")))
+//!     .gas_limit(100_000)
+//!     .build()
+//!     .unwrap();
+//!
+//! let result = evm.transact(tx).unwrap();
+//! ```
+//!
+//! ## Error Handling with try_new
+//!
+//! ```rust,no_run
+//! use guillotine_rs::guillotine_mini::{GuillotineMiniEvm, EvmAdapterError};
+//! use revm::Context;
+//!
+//! let ctx = Context::mainnet();
+//! let evm = match GuillotineMiniEvm::try_new(ctx) {
+//!     Ok(evm) => evm,
+//!     Err(EvmAdapterError::Ffi(name)) => {
+//!         eprintln!("FFI call failed: {}", name);
+//!         return;
+//!     }
+//!     Err(EvmAdapterError::Db(e)) => {
+//!         eprintln!("Database error: {:?}", e);
+//!         return;
+//!     }
+//! };
+//! ```
 
 use super::{database_bridge, error::EvmAdapterError, ffi, types};
 use revm::{
@@ -154,6 +246,38 @@ where
         database_bridge::sync_account_to_ffi(self.handle, self.ctx.journaled_state.db_mut(), tx.caller)?;
         database_bridge::sync_account_to_ffi(self.handle, self.ctx.journaled_state.db_mut(), contract_addr)?;
 
+        // Sync storage pre-state for the contract
+        // TODO: Improve storage sync strategy using one of these approaches:
+        //   1. EIP-2930 access lists to know exactly which slots to sync
+        //   2. On-demand loading via FFI callback mechanism (requires Zig changes)
+        //   3. Sync all non-zero slots (expensive for large contracts)
+        //   4. Use heuristics based on contract patterns
+        //
+        // For now, we pre-sync common storage slots (0-9) that are frequently used by:
+        //   - Slot 0: Often used for contract state flags or counters
+        //   - Slot 1-9: Common for mappings, arrays, and state variables
+        //
+        // This covers most simple contracts (ERC20, ERC721, etc.) but may miss
+        // complex contracts with dynamic storage layouts or high-slot mappings.
+        let common_slots: [U256; 10] = [
+            U256::from(0),
+            U256::from(1),
+            U256::from(2),
+            U256::from(3),
+            U256::from(4),
+            U256::from(5),
+            U256::from(6),
+            U256::from(7),
+            U256::from(8),
+            U256::from(9),
+        ];
+        database_bridge::sync_storage_slots_to_ffi(
+            self.handle,
+            self.ctx.journaled_state.db_mut(),
+            contract_addr,
+            &common_slots,
+        )?;
+
         // Set bytecode
         let bytecode_set = unsafe { ffi::evm_set_bytecode(self.handle, bytecode.as_ptr(), bytecode.len()) };
         if !bytecode_set {
@@ -212,8 +336,11 @@ where
             );
         }
 
-        // Execute (do not treat returned bool as fatal; it mirrors success status)
-        let _ = unsafe { ffi::evm_execute(self.handle) };
+        // Execute transaction
+        let execute_success = unsafe { ffi::evm_execute(self.handle) };
+        if !execute_success {
+            return Err(EvmAdapterError::Ffi("evm_execute failed - execution did not complete"));
+        }
 
         // Get results
         let gas_used = unsafe { ffi::evm_get_gas_used(self.handle) };

@@ -6,4 +6,4 @@
 pub mod guillotine_mini;
 
 // Re-export for convenience
-pub use guillotine_mini::GuillotineMiniEvm;
+pub use guillotine_mini::{GuillotineMiniEvm, EvmAdapterError};
