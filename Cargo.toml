@@ -2,6 +2,7 @@
 name = "guillotine-rs"
 version = "0.1.3"
 edition = "2021"
+rust-version = "1.75"
 authors = ["EVMts Contributors"]
 license = "MIT OR Apache-2.0"
 description = "High-performance REVM-compatible EVM execution backed by Zig's guillotine-mini engine with FFI integration"
@@ -21,14 +22,11 @@ exclude = [
     "!README.md",
     "**/.zig-cache/**",
     "**/zig-out/**",
-    "tests/config_test.rs",
-    "tests/revm_compat.rs",
-    "tests/wrapper_test.rs",
 ]
 
 [dependencies]
-alloy = "1.0.41"
-revm = "30.2.0"
+alloy = "^1.0.41"
+revm = "^30.2.0"
 
 [dev-dependencies]
 hex = "0.4.3"
