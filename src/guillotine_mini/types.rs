@@ -51,6 +51,8 @@ pub fn i64_to_u64_gas(gas: i64) -> u64 {
 
 /// Log entry as exported from guillotine-mini
 /// Not currently used in the wrapper, but useful for conversions/tests
+/// TODO: Enable once log extraction API is finalized
+#[allow(dead_code)]
 pub struct EvmLog {
     pub address: Address,
     pub topics: Vec<U256>,
@@ -59,6 +61,8 @@ pub struct EvmLog {
 
 /// Storage change entry captured from guillotine-mini
 /// Represents a single slot write in final storage state
+/// TODO: Enable once storage change extraction API is finalized
+#[allow(dead_code)]
 pub struct StorageChange {
     pub address: Address,
     pub slot: U256,
