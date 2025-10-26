@@ -74,6 +74,57 @@ guillotine-rs = { git = "https://github.com/evmts/guillotine-rs", submodules = t
 
 High-performance REVM execution backed by the Zig-based [guillotine-mini](https://github.com/evmts/guillotine-mini) engine. Thin Rust wrapper with FFI to Zig for execution, state sync, logs, refunds, and storage changes.
 
+## Current Status
+
+### What Works
+
+- Basic EVM transaction execution with all standard opcodes
+- REVM-compatible `Context` and `TxEnv` integration
+- Pre-state synchronization (account balances, nonces, code)
+- Post-execution state extraction (storage changes, logs, gas refunds)
+- All hardforks from Frontier to Osaka
+- Error handling with typed errors (`EvmAdapterError`)
+- Revert handling with proper result mapping
+
+### Known Limitations
+
+#### Storage Pre-State Synchronization
+
+Currently, storage synchronization assumes contracts start with zero storage values. Pre-existing storage values from the REVM database are not automatically synchronized before execution.
+
+- **New contracts**: Work correctly (no pre-existing storage)
+- **Contracts with existing storage**: May behave incorrectly if they rely on pre-existing values
+
+**Workaround**: Manually sync storage slots before execution using `database_bridge::sync_storage_to_ffi`
+
+#### EIP-2930 Access Lists (Partially Implemented)
+
+Access list support (EIP-2930) has FFI functions available but is not yet integrated into the high-level `transact` method.
+
+**Status**: Planned for future release
+
+#### EIP-4844 Blob Transactions (Partially Implemented)
+
+Blob transaction support (EIP-4844) is partially implemented:
+- Blob base fee is set in blockchain context
+- FFI functions exist for blob hash management
+- Not yet fully integrated into transaction processing
+
+**Status**: Under development
+
+#### Configuration API (Temporarily Disabled)
+
+The configuration API for custom opcodes and precompiles is implemented but temporarily disabled pending upstream FFI support in guillotine-mini. See commit 25b2185.
+
+**Disabled features**:
+- Custom opcode handlers (`EvmConfigBuilder::override_opcode`)
+- Custom precompile registration (`EvmConfigBuilder::override_precompile`)
+- Runtime parameter tuning (stack size, memory limits, etc.)
+
+**Status**: Waiting for upstream FFI functions to be added to `root_c.zig`
+
+**Current workaround**: Use default EVM configuration via `GuillotineMiniEvm::new()` or `GuillotineMiniEvm::try_new()`
+
 ## Architecture
 
 - **Zig** ([`lib/guillotine-mini`](./lib/guillotine-mini)) — core EVM, opcode handlers, storage manager

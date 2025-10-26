@@ -46,7 +46,6 @@
 - `src/guillotine_mini/types.rs` - Type conversion utilities
 - `src/guillotine_mini/database_bridge.rs` - REVM ↔ Zig state sync
 - `src/guillotine_mini/config.rs` - Configuration builder (396 lines)
-- `src/guillotine_mini/interpreter.rs` - (Deprecated, use `evm.rs` instead)
 
 ### Tests
 - `tests/revm_compat.rs` - REVM compatibility tests with Ethereum fixtures
@@ -227,8 +226,8 @@ Default: Cancun
 ## Dependencies
 
 ### Rust
-- `revm = "30.2.0"` - Ethereum Virtual Machine
-- `alloy = "1.0.41"` - Ethereum primitives
+- `revm = "^30.2.0"` - Ethereum Virtual Machine
+- `alloy = "^1.0.41"` - Ethereum primitives
 - `hex = "0.4.3"` (dev) - Hex encoding/decoding
 
 ### System
@@ -267,7 +266,6 @@ Default: Cancun
 
 - **Stable**: `GuillotineMiniEvm::new`, `transact`, FFI lifecycle
 - **Unstable**: Configuration API (may change), precompile interface
-- **Deprecated**: `interpreter.rs` module (use `evm.rs` instead)
 
 ## Contributing
 
