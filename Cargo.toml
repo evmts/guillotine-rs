@@ -1,8 +1,9 @@
 [package]
 name = "guillotine-rs"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
-rust-version = "1.75"
+links = "guillotine_mini"
+rust-version = "1.91"
 authors = ["EVMts Contributors"]
 license = "MIT OR Apache-2.0"
 description = "High-performance REVM-compatible EVM execution backed by Zig's guillotine-mini engine with FFI integration"
@@ -12,21 +13,22 @@ homepage = "https://github.com/evmts/guillotine-rs"
 readme = "README.md"
 keywords = ["evm", "ethereum", "revm", "blockchain", "virtual-machine"]
 categories = ["cryptography::cryptocurrencies", "development-tools"]
-# Note: Dependencies are fetched via zig fetch during build
-exclude = [
-    ".github/**",
-    ".zig-cache/**",
-    "zig-out/**",
-    "zig-cache/**",
-    "*.md",
-    "!README.md",
-    "**/.zig-cache/**",
-    "**/zig-out/**",
-]
+include = ["/src", "/tests", "/benches", "/vendor", "/build.rs", "/build.zig", "/README.md", "/PUBLISHING.md", "/LICENSE-*"]
 
 [dependencies]
-alloy = "^1.0.41"
-revm = "^30.2.0"
+ark-bls12-381 = "0.5"
+ark-bn254 = "0.5"
+ark-ec = "0.5"
+ark-ff = "0.5"
+# The Zig build uses headers from this exact c-kzg release.
+c-kzg = "=2.1.8"
+keccak-asm = "0.1"
+revm = "30.2"
 
 [dev-dependencies]
 hex = "0.4.3"
+proptest = "1.9"
+
+[[bench]]
+name = "transaction"
+harness = false

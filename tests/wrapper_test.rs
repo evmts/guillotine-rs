@@ -4,7 +4,7 @@ use guillotine_rs::GuillotineMiniEvm;
 use revm::{
     context::Context,
     database::{CacheDB, EmptyDB},
-    primitives::{address, hardfork::SpecId, Address, Bytes, TxKind, U256},
+    primitives::{address, hardfork::SpecId, Bytes, TxKind, U256},
     state::{AccountInfo, Bytecode},
     MainContext,
 };
@@ -12,8 +12,7 @@ use revm::{
 #[test]
 fn test_wrapper_create() {
     eprintln!("WRAPPER TEST: Creating context...");
-    let ctx = Context::mainnet()
-        .modify_cfg_chained(|cfg| cfg.spec = SpecId::CANCUN);
+    let ctx = Context::mainnet().modify_cfg_chained(|cfg| cfg.spec = SpecId::CANCUN);
 
     eprintln!("WRAPPER TEST: Creating GuillotineMiniEvm...");
     let evm = GuillotineMiniEvm::new(ctx);
@@ -120,8 +119,11 @@ fn test_wrapper_transact_simple() {
     eprintln!("WRAPPER TEST: transact() returned: {:?}", result.is_ok());
 
     if let Ok(r) = result {
-        eprintln!("WRAPPER TEST: Success! gas_used={:?}, is_success={}",
-                  r.result.gas_used(), r.result.is_success());
+        eprintln!(
+            "WRAPPER TEST: Success! gas_used={:?}, is_success={}",
+            r.result.gas_used(),
+            r.result.is_success()
+        );
     } else {
         eprintln!("WRAPPER TEST: Error: {:?}", result.err());
     }

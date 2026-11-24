@@ -72,8 +72,13 @@ fn test_simple_chainid_cancun() {
     let state = result.state;
 
     // Check storage: slot 0x01 should contain 0x01 (CHAINID value)
-    let contract_account = state.get(&contract_addr).expect("Contract should exist in state");
-    let storage_slot_1 = contract_account.storage.get(&U256::from(1)).expect("Storage slot 0x01 should exist");
+    let contract_account = state
+        .get(&contract_addr)
+        .expect("Contract should exist in state");
+    let storage_slot_1 = contract_account
+        .storage
+        .get(&U256::from(1))
+        .expect("Storage slot 0x01 should exist");
     assert_eq!(
         storage_slot_1.present_value,
         U256::from(1),
@@ -158,10 +163,17 @@ fn test_log_emission_simple() {
     let sender = address!("a94f5374fce5edbc8e2a8697c15331677e6ebf0b");
     db.insert_account_info(
         sender,
-        AccountInfo { balance: U256::from(1_000_000_u64), nonce: 0, code_hash: revm::primitives::KECCAK_EMPTY, code: None },
+        AccountInfo {
+            balance: U256::from(1_000_000_u64),
+            nonce: 0,
+            code_hash: revm::primitives::KECCAK_EMPTY,
+            code: None,
+        },
     );
 
-    let ctx = Context::mainnet().modify_cfg_chained(|cfg| cfg.spec = SpecId::CANCUN).with_db(db);
+    let ctx = Context::mainnet()
+        .modify_cfg_chained(|cfg| cfg.spec = SpecId::CANCUN)
+        .with_db(db);
     let mut evm = GuillotineMiniEvm::new(ctx);
 
     let tx = TxEnv::builder()
@@ -202,10 +214,17 @@ fn test_revert_maps_to_execution_result() {
     let sender = address!("a94f5374fce5edbc8e2a8697c15331677e6ebf0b");
     db.insert_account_info(
         sender,
-        AccountInfo { balance: U256::from(1_000_000_u64), nonce: 0, code_hash: revm::primitives::KECCAK_EMPTY, code: None },
+        AccountInfo {
+            balance: U256::from(1_000_000_u64),
+            nonce: 0,
+            code_hash: revm::primitives::KECCAK_EMPTY,
+            code: None,
+        },
     );
 
-    let ctx = Context::mainnet().modify_cfg_chained(|cfg| cfg.spec = SpecId::CANCUN).with_db(db);
+    let ctx = Context::mainnet()
+        .modify_cfg_chained(|cfg| cfg.spec = SpecId::CANCUN)
+        .with_db(db);
     let mut evm = GuillotineMiniEvm::new(ctx);
 
     let tx = TxEnv::builder()
@@ -217,7 +236,10 @@ fn test_revert_maps_to_execution_result() {
 
     let rs = evm.transact(tx).unwrap();
     match rs.result {
-        revm::context_interface::result::ExecutionResult::Revert { gas_used, ref output } => {
+        revm::context_interface::result::ExecutionResult::Revert {
+            gas_used,
+            ref output,
+        } => {
             assert!(gas_used > 0);
             assert_eq!(output.len(), 0);
         }
@@ -247,10 +269,17 @@ fn test_storage_multi_slot_tracked() {
     let sender = address!("a94f5374fce5edbc8e2a8697c15331677e6ebf0b");
     db.insert_account_info(
         sender,
-        AccountInfo { balance: U256::from(1_000_000_u64), nonce: 0, code_hash: revm::primitives::KECCAK_EMPTY, code: None },
+        AccountInfo {
+            balance: U256::from(1_000_000_u64),
+            nonce: 0,
+            code_hash: revm::primitives::KECCAK_EMPTY,
+            code: None,
+        },
     );
 
-    let ctx = Context::mainnet().modify_cfg_chained(|cfg| cfg.spec = SpecId::CANCUN).with_db(db);
+    let ctx = Context::mainnet()
+        .modify_cfg_chained(|cfg| cfg.spec = SpecId::CANCUN)
+        .with_db(db);
     let mut evm = GuillotineMiniEvm::new(ctx);
 
     let tx = TxEnv::builder()
@@ -264,9 +293,19 @@ fn test_storage_multi_slot_tracked() {
     assert!(result.result.is_success(), "Transaction should succeed");
 
     let state = result.state;
-    let acc = state.get(&contract_addr).expect("Account should be present");
-    let v1 = acc.storage.get(&U256::from(1)).map(|s| s.present_value).unwrap_or_default();
-    let v2 = acc.storage.get(&U256::from(2)).map(|s| s.present_value).unwrap_or_default();
+    let acc = state
+        .get(&contract_addr)
+        .expect("Account should be present");
+    let v1 = acc
+        .storage
+        .get(&U256::from(1))
+        .map(|s| s.present_value)
+        .unwrap_or_default();
+    let v2 = acc
+        .storage
+        .get(&U256::from(2))
+        .map(|s| s.present_value)
+        .unwrap_or_default();
     assert_eq!(v1, U256::from(2), "slot 1 should be 2");
     assert_eq!(v2, U256::from(3), "slot 2 should be 3");
 }
@@ -293,10 +332,17 @@ fn test_gas_refund_sstore_restore() {
     let sender = address!("a94f5374fce5edbc8e2a8697c15331677e6ebf0b");
     db.insert_account_info(
         sender,
-        AccountInfo { balance: U256::from(1_000_000_u64), nonce: 0, code_hash: revm::primitives::KECCAK_EMPTY, code: None },
+        AccountInfo {
+            balance: U256::from(1_000_000_u64),
+            nonce: 0,
+            code_hash: revm::primitives::KECCAK_EMPTY,
+            code: None,
+        },
     );
 
-    let ctx = Context::mainnet().modify_cfg_chained(|cfg| cfg.spec = SpecId::CANCUN).with_db(db);
+    let ctx = Context::mainnet()
+        .modify_cfg_chained(|cfg| cfg.spec = SpecId::CANCUN)
+        .with_db(db);
     let mut evm = GuillotineMiniEvm::new(ctx);
 
     let tx = TxEnv::builder()
@@ -310,7 +356,9 @@ fn test_gas_refund_sstore_restore() {
     assert!(result.result.is_success(), "Transaction should succeed");
 
     // Expect some positive gas refund for restoring slot to original value
-    if let revm::context_interface::result::ExecutionResult::Success { gas_refunded, .. } = &result.result {
+    if let revm::context_interface::result::ExecutionResult::Success { gas_refunded, .. } =
+        &result.result
+    {
         assert!(*gas_refunded > 0, "Should have non-zero gas refund");
     } else {
         panic!("Expected success result");

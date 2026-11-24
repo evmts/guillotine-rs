@@ -8,13 +8,7 @@ use revm::primitives::{address, Address, U256};
 fn test_ffi_create_only() {
     eprintln!("TEST: Creating EVM handle...");
     let hardfork = "Cancun";
-    let handle = unsafe {
-        ffi::evm_create(
-            hardfork.as_ptr(),
-            hardfork.len(),
-            0,
-        )
-    };
+    let handle = unsafe { ffi::evm_create(hardfork.as_ptr(), hardfork.len(), 0) };
 
     assert!(!handle.is_null(), "EVM handle should not be null");
     eprintln!("TEST: EVM handle created successfully");
@@ -29,13 +23,7 @@ fn test_ffi_create_only() {
 fn test_ffi_set_bytecode() {
     eprintln!("TEST: Creating EVM handle...");
     let hardfork = "Cancun";
-    let handle = unsafe {
-        ffi::evm_create(
-            hardfork.as_ptr(),
-            hardfork.len(),
-            0,
-        )
-    };
+    let handle = unsafe { ffi::evm_create(hardfork.as_ptr(), hardfork.len(), 0) };
 
     assert!(!handle.is_null());
     eprintln!("TEST: EVM handle created");
@@ -44,9 +32,7 @@ fn test_ffi_set_bytecode() {
     let bytecode = hex::decode("600160020160005260206000f3").unwrap();
     eprintln!("TEST: Setting bytecode ({} bytes)...", bytecode.len());
 
-    let success = unsafe {
-        ffi::evm_set_bytecode(handle, bytecode.as_ptr(), bytecode.len())
-    };
+    let success = unsafe { ffi::evm_set_bytecode(handle, bytecode.as_ptr(), bytecode.len()) };
 
     assert!(success, "set_bytecode should succeed");
     eprintln!("TEST: Bytecode set successfully");
@@ -61,21 +47,13 @@ fn test_ffi_set_bytecode() {
 fn test_ffi_set_execution_context() {
     eprintln!("TEST: Creating EVM handle...");
     let hardfork = "Cancun";
-    let handle = unsafe {
-        ffi::evm_create(
-            hardfork.as_ptr(),
-            hardfork.len(),
-            0,
-        )
-    };
+    let handle = unsafe { ffi::evm_create(hardfork.as_ptr(), hardfork.len(), 0) };
     assert!(!handle.is_null());
     eprintln!("TEST: EVM handle created");
 
     let bytecode = hex::decode("600160020160005260206000f3").unwrap();
     eprintln!("TEST: Setting bytecode...");
-    let success = unsafe {
-        ffi::evm_set_bytecode(handle, bytecode.as_ptr(), bytecode.len())
-    };
+    let success = unsafe { ffi::evm_set_bytecode(handle, bytecode.as_ptr(), bytecode.len()) };
     assert!(success);
     eprintln!("TEST: Bytecode set");
 
@@ -115,20 +93,12 @@ fn test_ffi_set_execution_context() {
 fn test_ffi_set_blockchain_context() {
     eprintln!("TEST: Creating EVM handle...");
     let hardfork = "Cancun";
-    let handle = unsafe {
-        ffi::evm_create(
-            hardfork.as_ptr(),
-            hardfork.len(),
-            0,
-        )
-    };
+    let handle = unsafe { ffi::evm_create(hardfork.as_ptr(), hardfork.len(), 0) };
     assert!(!handle.is_null());
     eprintln!("TEST: EVM handle created");
 
     let bytecode = hex::decode("600160020160005260206000f3").unwrap();
-    let success = unsafe {
-        ffi::evm_set_bytecode(handle, bytecode.as_ptr(), bytecode.len())
-    };
+    let success = unsafe { ffi::evm_set_bytecode(handle, bytecode.as_ptr(), bytecode.len()) };
     assert!(success);
     eprintln!("TEST: Bytecode set");
 
@@ -174,8 +144,8 @@ fn test_ffi_set_blockchain_context() {
         ffi::evm_set_blockchain_context(
             handle,
             chain_id_bytes.as_ptr(),
-            1,      // block number
-            1000,   // timestamp
+            1,    // block number
+            1000, // timestamp
             difficulty_bytes.as_ptr(),
             prevrandao.as_ptr(),
             coinbase_bytes.as_ptr(),
@@ -196,21 +166,13 @@ fn test_ffi_set_blockchain_context() {
 fn test_ffi_execute() {
     eprintln!("TEST: Creating EVM handle...");
     let hardfork = "Cancun";
-    let handle = unsafe {
-        ffi::evm_create(
-            hardfork.as_ptr(),
-            hardfork.len(),
-            0,
-        )
-    };
+    let handle = unsafe { ffi::evm_create(hardfork.as_ptr(), hardfork.len(), 0) };
     assert!(!handle.is_null());
     eprintln!("TEST: EVM handle created");
 
     let bytecode = hex::decode("600160020160005260206000f3").unwrap();
     eprintln!("TEST: Setting bytecode...");
-    let success = unsafe {
-        ffi::evm_set_bytecode(handle, bytecode.as_ptr(), bytecode.len())
-    };
+    let success = unsafe { ffi::evm_set_bytecode(handle, bytecode.as_ptr(), bytecode.len()) };
     assert!(success);
 
     let caller = address!("a94f5374fce5edbc8e2a8697c15331677e6ebf0b");
@@ -294,13 +256,7 @@ fn test_ffi_execute() {
 fn test_ffi_set_balance_before_execute() {
     eprintln!("TEST: Creating EVM handle...");
     let hardfork = "Cancun";
-    let handle = unsafe {
-        ffi::evm_create(
-            hardfork.as_ptr(),
-            hardfork.len(),
-            0,
-        )
-    };
+    let handle = unsafe { ffi::evm_create(hardfork.as_ptr(), hardfork.len(), 0) };
     assert!(!handle.is_null());
     eprintln!("TEST: EVM handle created");
 
@@ -321,12 +277,7 @@ fn test_ffi_set_balance_before_execute() {
     let code = hex::decode("600160020160005260206000f3").unwrap();
     eprintln!("TEST: Setting code before execution setup...");
     unsafe {
-        ffi::evm_set_code(
-            handle,
-            addr_bytes.as_ptr(),
-            code.as_ptr(),
-            code.len(),
-        );
+        ffi::evm_set_code(handle, addr_bytes.as_ptr(), code.as_ptr(), code.len());
     }
     eprintln!("TEST: Code set successfully (no segfault!)");
 

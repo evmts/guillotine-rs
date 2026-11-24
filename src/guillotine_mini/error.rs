@@ -19,7 +19,7 @@
 //! **Example**:
 //! ```rust,no_run
 //! use guillotine_rs::guillotine_mini::{GuillotineMiniEvm, EvmAdapterError};
-//! use revm::{Context, primitives::{address, TxEnv, TxKind}};
+//! use revm::{context::TxEnv, primitives::{address, TxKind}, Context, MainContext};
 //!
 //! let ctx = Context::mainnet();
 //! let mut evm = GuillotineMiniEvm::new(ctx);
@@ -64,7 +64,7 @@
 //! **Example**:
 //! ```rust,no_run
 //! use guillotine_rs::guillotine_mini::{GuillotineMiniEvm, EvmAdapterError};
-//! use revm::Context;
+//! use revm::{Context, MainContext};
 //!
 //! let ctx = Context::mainnet();
 //!
@@ -133,4 +133,3 @@ impl<DbErr: core::fmt::Debug> core::fmt::Display for EvmAdapterError<DbErr> {
 }
 
 impl<DbErr: core::fmt::Debug> std::error::Error for EvmAdapterError<DbErr> {}
-

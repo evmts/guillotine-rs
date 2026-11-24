@@ -7,15 +7,16 @@ use super::error::EvmAdapterError;
 use super::ffi::EvmHandle;
 use super::types::{address_to_bytes, u256_to_be_bytes};
 use revm::database_interface::Database;
-use revm::primitives::{Address, U256};
+use revm::primitives::{Address, KECCAK_EMPTY, U256};
 
 /// Synchronize account state from REVM Database to guillotine-mini
 ///
 /// Sets up pre-state in guillotine-mini before execution
 ///
 /// # Safety
-/// The `handle` must be a valid non-null pointer to an EvmHandle created by `evm_create`.
-pub fn sync_account_to_ffi<DB: Database>(
+/// The handle must refer to a live EVM created by `evm_create`. The caller must
+/// have exclusive access to the EVM for the duration of this call.
+pub unsafe fn sync_account_to_ffi<DB: Database>(
     handle: *mut EvmHandle,
     db: &mut DB,
     address: Address,
@@ -32,20 +33,29 @@ pub fn sync_account_to_ffi<DB: Database>(
     if let Some(acc_info) = acc {
         // Set balance
         let balance_bytes = u256_to_be_bytes(&acc_info.balance);
-        let ok = unsafe { super::ffi::evm_set_balance(handle, addr_bytes.as_ptr(), balance_bytes.as_ptr()) };
+        let ok = unsafe {
+            super::ffi::evm_set_balance(handle, addr_bytes.as_ptr(), balance_bytes.as_ptr())
+        };
         if !ok {
             return Err(EvmAdapterError::Ffi("evm_set_balance"));
         }
 
         // Set nonce
-        let nonce_set = unsafe { super::ffi::evm_set_nonce(handle, addr_bytes.as_ptr(), acc_info.nonce) };
+        let nonce_set =
+            unsafe { super::ffi::evm_set_nonce(handle, addr_bytes.as_ptr(), acc_info.nonce) };
         if !nonce_set {
             return Err(EvmAdapterError::Ffi("evm_set_nonce"));
         }
 
-        // Set code if exists
-        if let Some(code) = &acc_info.code {
-            let code_bytes = code.bytecode();
+        let code = match acc_info.code {
+            None if acc_info.code_hash != KECCAK_EMPTY => Some(
+                db.code_by_hash(acc_info.code_hash)
+                    .map_err(EvmAdapterError::Db)?,
+            ),
+            code => code,
+        };
+        if let Some(code) = code {
+            let code_bytes = code.original_byte_slice();
             let ok = unsafe {
                 super::ffi::evm_set_code(
                     handle,
@@ -66,8 +76,9 @@ pub fn sync_account_to_ffi<DB: Database>(
 /// Synchronize storage slot from REVM Database to guillotine-mini
 ///
 /// # Safety
-/// The `handle` must be a valid non-null pointer to an EvmHandle created by `evm_create`.
-pub fn sync_storage_to_ffi<DB: Database>(
+/// The handle must refer to a live EVM created by `evm_create`. The caller must
+/// have exclusive access to the EVM for the duration of this call.
+pub unsafe fn sync_storage_to_ffi<DB: Database>(
     handle: *mut EvmHandle,
     db: &mut DB,
     address: Address,
@@ -112,12 +123,13 @@ pub fn sync_storage_to_ffi<DB: Database>(
 /// * `slots` - Storage slots to pre-sync
 ///
 /// # Safety
-/// The `handle` must be a valid non-null pointer to an EvmHandle created by `evm_create`.
+/// The handle must refer to a live EVM created by `evm_create`. The caller must
+/// have exclusive access to the EVM for the duration of this call.
 ///
 /// # Note
 /// This is a temporary solution until callback-based lazy loading is implemented.
 /// Currently, only explicitly pre-synced slots will be available to the contract.
-pub fn sync_storage_slots_to_ffi<DB: Database>(
+pub unsafe fn sync_storage_slots_to_ffi<DB: Database>(
     handle: *mut EvmHandle,
     db: &mut DB,
     address: Address,
@@ -154,13 +166,14 @@ pub fn sync_storage_slots_to_ffi<DB: Database>(
 /// Read storage value back from guillotine-mini FFI
 ///
 /// # Safety
-/// The `handle` must be a valid non-null pointer to an EvmHandle created by `evm_create`.
+/// The handle must refer to a live EVM created by `evm_create`. The caller must
+/// have exclusive access to the EVM for the duration of this call.
 ///
 /// # Errors
 /// Returns an error if:
 /// - The handle is null
 /// - The FFI call to `evm_get_storage` fails
-pub fn read_storage_from_ffi(
+pub unsafe fn read_storage_from_ffi(
     handle: *mut EvmHandle,
     address: Address,
     slot: U256,
