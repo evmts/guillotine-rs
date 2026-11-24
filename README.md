@@ -10,8 +10,9 @@ using REVM 30's context, database, transaction, and result types.
 
 Install Rust 1.91 or newer, [Zig 0.15.2](https://ziglang.org/download/), and a
 working native C linker and SDK. Place Zig on `PATH` or set `ZIG` to its absolute
-path. CI exercises GNU/Linux x86_64 and macOS AArch64. The build also accepts
-GNU/Linux AArch64 and macOS x86_64.
+path. CI exercises GNU/Linux x86_64 and AArch64 on pushes and pull requests.
+Start the CI workflow manually with the `macos` option to run the same suite
+on macOS AArch64. The build also accepts macOS x86_64.
 
 ```sh
 cargo build --locked
